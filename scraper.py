@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 BASE_URL: str = "https://www.economics.ox.ac.uk"
 PAGE_URL: str = BASE_URL + "/news"
 
-MAX_ITEMS: int = 30
+MAX_ITEMS: int = 5 ## Low maximum for fetch testing
 
 FEED_TITLE: str = "Oxford Economics Department" + " | " + "News"
 FEED_DESCRIPTION: str = "News from the Department of Economics, University of Oxford"
@@ -24,11 +24,14 @@ FEED_DESCRIPTION: str = "News from the Department of Economics, University of Ox
 LOCAL_TIMEZONE = ZoneInfo("Europe/London") ## Oxford timezone
 
 ## CSS Selectors (Determined using FiveFilters Feed Creator)
-ITEM_SELECTOR = "article[class*='listing-item']"
-TITLE_SELECTOR = "div[class*='listing-title'] h3"
-URL_SELECTOR = "a[class*='listing-item-link']"
-DATE_SELECTOR = "div[class*='metadata-data']"
-IMAGE_SELECTOR = "div[class*='image'] img"
+ITEM_SELECTOR: str = "article[class*='listing-item']"
+TITLE_SELECTOR: str = "div[class*='listing-title'] h3"
+URL_SELECTOR: str = "a[class*='listing-item-link']"
+DATE_SELECTOR: str = "div[class*='metadata-data']"
+IMAGE_SELECTOR: str = "div[class*='image'] img"
+
+## Selector for page content
+CONTENT_SELECTOR: str = "div.content div.field-name-field-content div.field-item"
 
 ## Feed XML output
 OUTPUT_DIR = Path("_site")
@@ -41,43 +44,28 @@ FEED_URL: str = "https://EKnipe.github.io/www.economics.ox.ac.uk-news-RSS/feed.x
 
 ## HTTP
 
-def fetch_page():
+def fetch_page(page):
+    page.goto(
+        PAGE_URL,
+        wait_until = "domcontentloaded",
+        timeout = 60_000
+    )
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True
-        )
+    page.wait_for_selector(
+        TITLE_SELECTOR,
+        state = "visible",
+        timeout = 30_000,
+    )
 
-        page = browser.new_page(
-            user_agent = (
-                "Mozilla/5.0 (compatible; www.economics.ox.ac.uk-news-RSS/1.0; "
-                "+https://github.com/EKnipe/www.economics.ox.ac.uk-news-RSS/)"
-            )
-        )
+    page.wait_for_selector(
+        URL_SELECTOR,
+        state = "attached",
+        timeout = 30_000,
+    )
 
-        page.goto(
-            PAGE_URL,
-            wait_until = "domcontentloaded",
-            timeout = 60_000
-        )
+    page.wait_for_timeout(1_000)
 
-        page.wait_for_selector(
-            TITLE_SELECTOR,
-            state="visible",
-            timeout=30_000,
-        )
-
-        page.wait_for_selector(
-            URL_SELECTOR,
-            state="attached",
-            timeout=30_000,
-        )
-
-        page.wait_for_timeout(1_000)
-
-        page_html = page.content()
-
-        browser.close()
+    page_html = page.content()
 
     return page_html
 
@@ -216,8 +204,7 @@ def scrape_articles(page_html) -> list[dict]:
                 "title": item_title,
                 "url": item_url,
                 "description": item_description,
-                "published": item_date,
-                "image": image_url,
+                "published": item_date
         })
     
     if not items:
@@ -239,6 +226,35 @@ def scrape_articles(page_html) -> list[dict]:
             unique_items.append(item)
 
     return unique_items[:MAX_ITEMS]
+
+## Article body fetcher
+
+def fetch_body(page, url) -> str:
+    page.goto(
+        url,
+        wait_until = "domcontentloaded",
+        timeout = 60_000
+    )
+
+    locator = page.locator(CONTENT_SELECTOR).first
+
+    locator.wait_for(
+        state = "visible",
+        timeout = 30_000
+    )
+
+    article_html: str = locator.inner_html()
+
+    soup = BeautifulSoup(article_html, "html.parser")
+
+    for unwanted in soup.select("script, style, noscript"):
+        unwanted.decompose()
+
+    for paragraph in soup.find_all("p"):
+        if not paragraph.get_text(" ", strip=True):
+            paragraph.decompose()
+
+    return str(soup).strip()
 
 ## Helper Functions for RSS
 
@@ -262,15 +278,6 @@ def generate_RSS(items: list[dict]) -> str:
         publication_date: str = format_datetime(item["published"])
 
         guid = item["url"]
-
-        if item["image"]:
-            media: str = (
-                f'\n      <media:content '
-                f'url="{xml_attribute(item["image"])}" '
-                f'medium="image" />'
-            )
-        else:
-            media: str = ""
         
         RSS_item: str = f"""
     <item>
@@ -278,7 +285,7 @@ def generate_RSS(items: list[dict]) -> str:
       <link>{xml_escape(item["url"])}</link>
       <guid isPermaLink="true">{xml_escape(guid)}</guid>
       <pubDate>{xml_escape(publication_date)}</pubDate>
-      <description>{cdata(item["description"])}</description>{media}
+      <description>{cdata(item["description"])}</description>
     </item>"""
 
         RSS_items.append(RSS_item)
@@ -312,13 +319,34 @@ def generate_RSS(items: list[dict]) -> str:
 ### MAIN
 
 def main():
-    print(f"Fetching {PAGE_URL}...")
+    print("Launching Playwright...")
 
-    page_html = fetch_page()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True
+        )
 
-    print("Extracting news items...")
+        page = browser.new_page(
+            user_agent = (
+                "Mozilla/5.0 (compatible; www.economics.ox.ac.uk-news-RSS/1.0; "
+                "+https://github.com/EKnipe/www.economics.ox.ac.uk-news-RSS/)"
+            )
+        )
+    
+        print(f"Fetching {PAGE_URL}...")
 
-    items: list[dict] = scrape_articles(page_html)
+        page_html = fetch_page(page)
+
+        print("Extracting news items...")
+
+        items: list[dict] = scrape_articles(page_html)
+
+        for item in items:
+            try:
+                article_body = fetch_body(page, url = item["url"])
+                item["description"] += article_body
+            except Exception as e:
+                print(f"Failed to fetch article contents from {item["url"]}: {e}")
 
     print(f"Found {len(items)} items. Generating RSS...")
 
