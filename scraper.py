@@ -13,13 +13,19 @@ from playwright.sync_api import sync_playwright
 
 ### CONSTANTS
 
-BASE_URL: str = "https://www.economics.ox.ac.uk"
-PAGE_URL: str = BASE_URL + "/news"
-
-MAX_ITEMS: int = 5 ## Low maximum for fetch testing
+MAX_ITEMS: int = 20
 
 FEED_TITLE: str = "Oxford Economics Department" + " | " + "News"
 FEED_DESCRIPTION: str = "News from the Department of Economics, University of Oxford"
+
+## Feed XML output
+OUTPUT_DIR = Path("_site")
+OUTPUT_FILE = OUTPUT_DIR / "feed.xml"
+
+FEED_URL: str = "https://EKnipe.github.io/www.economics.ox.ac.uk-news-RSS/feed.xml"
+
+BASE_URL: str = "https://www.economics.ox.ac.uk"
+PAGE_URL: str = BASE_URL + "/news"
 
 LOCAL_TIMEZONE = ZoneInfo("Europe/London") ## Oxford timezone
 
@@ -32,12 +38,6 @@ IMAGE_SELECTOR: str = "div[class*='image'] img"
 
 ## Selector for page content
 CONTENT_SELECTOR: str = "div.content div.field-name-field-content div.field-item"
-
-## Feed XML output
-OUTPUT_DIR = Path("_site")
-OUTPUT_FILE = OUTPUT_DIR / "feed.xml"
-
-FEED_URL: str = "https://EKnipe.github.io/www.economics.ox.ac.uk-news-RSS/feed.xml"
 
 
 ### FUNCTIONS
