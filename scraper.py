@@ -7,9 +7,9 @@ from pathlib import Path
 from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
 
-import requests
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
+from playwright.sync_api import sync_playwright
 
 ### CONSTANTS
 
@@ -43,21 +43,35 @@ FEED_URL: str = "https://EKnipe.github.io/www.economics.ox.ac.uk-news-RSS/feed.x
 ## HTTP
 
 def fetch_page():
-    response = requests.get(
-        PAGE_URL,
-        headers = {
-            "User-Agent": (
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True
+        )
+
+        page = browser.new_page(
+            user_agent = (
                 "Mozilla/5.0 (compatible; www.economics.ox.ac.uk-news-RSS/1.0; "
                 "+https://github.com/EKnipe/www.economics.ox.ac.uk-news-RSS/)"
-            ),
-            "Accept": "text/html,application/xhtml+xml"
-        },
-        timeout = 30
-    )
+            )
+        )
 
-    response.raise_for_status()
+        page.goto(
+            PAGE_URL,
+            wait_until = "domcontentloaded",
+            timeout = 60_000
+        )
 
-    return response.text
+        page.wait_for_selector(
+            ITEM_SELECTOR,
+            timeout = 30_000
+        )
+
+        page_html = page.content()
+
+        browser.close()
+
+    return page_html
 
 ## Helper Functions for Scraper
 
