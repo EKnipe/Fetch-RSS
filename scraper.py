@@ -26,7 +26,6 @@ LOCAL_TIMEZONE = ZoneInfo("Europe/London") ## Oxford timezone
 ## CSS Selectors (Determined using FiveFilters Feed Creator)
 ITEM_SELECTOR = "article[class*='listing-item']"
 TITLE_SELECTOR = "div[class*='listing-title'] h3"
-DESCRIPTION_SELECTOR = "div[class*='text-wrapper']"
 URL_SELECTOR = "a[class*='listing-item-link']"
 DATE_SELECTOR = "div[class*='metadata-data']"
 IMAGE_SELECTOR = "div[class*='image'] img"
@@ -106,19 +105,14 @@ def make_timezone_aware(dt):
 
     return dt.astimezone(LOCAL_TIMEZONE)
 
-def make_description(element) -> str:
-    if element is None:
+def make_description(image_url: str) -> str:
+    if image_url:
+        return (
+            f'<p><img src="{xml_attribute(image_url)}" '
+            f'alt="" /></p>'
+        )
+    else:
         return ""
-
-    for unwanted in element.select("script, style, noscript"):
-        unwanted.decompose()
-
-    content: str = "".join(str(child) for child in element.contents).strip()
-
-    if content:
-        return content
-
-    return get_text(element)
 
 def parse_date(element):
     if element is None:
@@ -210,13 +204,13 @@ def scrape_articles(page_html) -> list[dict]:
         if not item_url:
             continue ## Require href
 
-        item_description = make_description(article.select_one(DESCRIPTION_SELECTOR))
-
         item_date = parse_date(article.select_one(DATE_SELECTOR))
         if item_date is None:
             item_date = datetime.now(LOCAL_TIMEZONE) ## Fallback non-date
 
         image_url = get_image_url(article.select_one(IMAGE_SELECTOR))
+
+        item_description = make_description(image_url)
 
         items.append({
                 "title": item_title,
