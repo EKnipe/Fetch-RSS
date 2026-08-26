@@ -1,13 +1,13 @@
 name: Update RSS feed for www.economics.ox.ac.uk/news
 
 on:
-  # Hourly scheduled run
-  schedule:
-    - cron: "10 1 * * *"
-      timezone: "Europe/Athens"
-
   # Manual run
   workflow_dispatch:
+  
+  # Hourly scheduled run
+  schedule:
+    - cron: "16 1 * * *"
+      timezone: "Europe/Athens"
 
   # push: ## Run on push (disabled)
   #   branches:
