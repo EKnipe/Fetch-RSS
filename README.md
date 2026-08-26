@@ -9,7 +9,9 @@ Add this link to your RSS feed reader: [eknipe.github.io/www.economics.ox.ac.uk-
 Alternatively, clone this repository and run the script manually to create a local XML file.
 
 ## Dependencies
+
 (see [requirements.txt](requirements.txt))
+
 - [Playwright](https://github.com/microsoft/playwright)
 - [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/)
 - [dateutil](https://github.com/dateutil/dateutil)

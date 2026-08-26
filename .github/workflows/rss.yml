@@ -45,7 +45,7 @@ jobs:
 
       - name: Generate RSS feed
         run: |
-          python scraper.py
+          python create_xml.py
 
       - name: Check generated feed
         run: |
