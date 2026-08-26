@@ -8,7 +8,7 @@ on:
   # Manual run
   workflow_dispatch:
 
-  # Run whenever code changes
+  # Run on push
   push:
     branches:
       - main
