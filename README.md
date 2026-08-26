@@ -10,7 +10,7 @@ Alternatively, clone this repository and run the script manually to create a loc
 
 ## Dependencies
 
-(see [requirements.txt](requirements.txt))
+(see [requirements.txt](requirements.txt) and [GitHub's dependency checker](https://github.com/EKnipe/www.economics.ox.ac.uk-news-RSS/network/dependencies))
 
 - [Playwright](https://github.com/microsoft/playwright)
 - [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/)
