@@ -265,7 +265,7 @@ def xml_escape(value):
     return html_escape(str(value), quote=False)
 
 def cdata(value) -> str:
-    value: str = str(value or "")
+    value = str(value or "")
     value = value.replace("]]>", "]]]]><![CDATA[>")
     return f"<![CDATA[{value}]]>"
 
