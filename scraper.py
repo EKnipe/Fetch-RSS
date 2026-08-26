@@ -63,9 +63,18 @@ def fetch_page():
         )
 
         page.wait_for_selector(
-            ITEM_SELECTOR,
-            timeout = 30_000
+            TITLE_SELECTOR,
+            state="visible",
+            timeout=30_000,
         )
+
+        page.wait_for_selector(
+            URL_SELECTOR,
+            state="attached",
+            timeout=30_000,
+        )
+
+        page.wait_for_timeout(1_000)
 
         page_html = page.content()
 
