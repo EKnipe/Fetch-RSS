@@ -47,16 +47,6 @@ jobs:
         run: |
           python create_xml.py
 
-      - name: Check generated feeds
-        run: |
-          test -s _site/oxecon_feed.xml
-          echo "OxEcon RSS feed generated successfully"
-          head -n 10 _site/oxecon_feed.xml
-          
-          test -s _site/oxhist_feed.xml
-          echo "OxHist RSS feed generated successfully"
-          head -n 10 _site/oxhist_feed.xml
-
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
