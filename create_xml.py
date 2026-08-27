@@ -62,6 +62,8 @@ class Item:
 
 ### FEEDS
 
+EXCLUDED_FEEDS: list[str] = [] ### Avoid uneccesarily fetching some feeds when testing
+
 FEEDS: list[Feed] = [
     Feed(
         id = "OxEcon",
@@ -92,13 +94,13 @@ FEEDS: list[Feed] = [
         xml_filename = "oxhist_feed",
         timezone = ZoneInfo("Europe/London"),
         css_selectors = CSS_Selectors(
-            item = "",
-            title = "",
-            url = "",
-            date = None,
-            image = None,
-            description = None,
-            page_content = None
+            item = ".oxfcms-listing-item",
+            title = "h3",
+            url = "a[class*='layout-link-overlay']",
+            date = "span[class*='metadata-field-content']",
+            image = "img",
+            description = "div[class*='card-text']",
+            page_content = "div.oxfcms-text div.clearfix"
         )
     )
 ]
@@ -406,7 +408,11 @@ def main():
             user_agent = f"Mozilla/5.0 (compatible; {GITHUB_REPO_NAME}/1.0; +{GITHUB_REPO_URL}/)"
         )
 
+        feed_count: int = 0
         for feed in FEEDS:
+            if feed.id in EXCLUDED_FEEDS:
+                print(f"Skipping feed: {feed.id}")
+                continue
 
             print(f"Processing feed: {feed.id}")
     
@@ -419,10 +425,10 @@ def main():
             items: list[Item] = scrape_articles(page_html, feed)
 
             for item in items:
-                article_body = None
+                article_body: str | None = None
                 if feed.css_selectors.page_content:
                     try:
-                        article_body: str = fetch_body(page, item.url, feed.css_selectors.page_content)
+                        article_body = fetch_body(page, item.url, feed.css_selectors.page_content)
                     except Exception as e:
                         print(f"Failed to fetch article contents from {item.url}: {e}")
 
@@ -448,6 +454,9 @@ def main():
             )
 
             print(f"Wrote {output_file}")
+            feed_count += 1
+
+    print(f"{feed_count} {"feed" if feed_count == 1 else "feeds"} fetched")
 
 
 ### EXECUTION
