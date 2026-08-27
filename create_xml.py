@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from email.utils import format_datetime
 from html import escape as html_escape
+from json import load as load_json
 from pathlib import Path
 from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
@@ -16,8 +17,12 @@ from playwright.sync_api import sync_playwright
 
 GLOBAL_MAX_ITEMS: int = 20
 
+DEFAULT_TIMEZONE: ZoneInfo = ZoneInfo("Europe/London")
+
+JSON_PATH: Path = Path("feeds.json")
+
 ## Feed XML output
-OUTPUT_DIR = Path("_site")
+OUTPUT_DIR: Path = Path("_site")
 XML_EXT: str = ".xml"
 
 GITHUB_USERNAME: str = "EKnipe"
@@ -34,10 +39,14 @@ class CSS_Selectors:
     item: str
     title: str
     url: str
-    date: str | None
-    image: str | None
-    description: str | None
-    page_content: str | None
+    date: str | None = None
+    image: str | None = None
+    description: str | None = None
+    page_content: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "CSS_Selectors":
+        return cls(**data)
 
 @dataclass
 class Feed:
@@ -46,10 +55,18 @@ class Feed:
     page_url_suffix: str
     title: str
     description: str
-    max_items: int
     xml_filename: str
-    timezone: ZoneInfo
     css_selectors: CSS_Selectors
+    max_items: int = GLOBAL_MAX_ITEMS
+    timezone: ZoneInfo = DEFAULT_TIMEZONE
+    enabled: bool = True
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Feed":
+        data = data.copy()
+        data["timezone"] = ZoneInfo(data["timezone"])
+        data["css_selectors"] = CSS_Selectors.from_dict(data["css_selectors"])
+        return cls(**data)
 
 @dataclass
 class Item:
@@ -59,89 +76,9 @@ class Item:
     description: str | None
     image_url: str | None
 
-
-### FEEDS
-
-EXCLUDED_FEEDS: list[str] = [] ### Avoid uneccesarily fetching some feeds when testing
-
-FEEDS: list[Feed] = [
-    Feed(
-        id = "OxEcon",
-        base_url = "https://www.economics.ox.ac.uk",
-        page_url_suffix = "/news",
-        title = "Oxford Economics Department" + " | " + "News",
-        description = "News from the Department of Economics, University of Oxford",
-        max_items = 20,
-        xml_filename = "oxecon_feed",
-        timezone = ZoneInfo("Europe/London"),
-        css_selectors = CSS_Selectors(
-            item = "article[class*='listing-item']",
-            title = "div[class*='listing-title'] h3",
-            url = "a[class*='listing-item-link']",
-            date = "div[class*='metadata-data']",
-            image = "div[class*='image'] img",
-            description = None,
-            page_content = "div.content div.field-name-field-content div.field-item"
-        )
-    ),
-    Feed(
-        id = "OxHist",
-        base_url = "https://www.history.ox.ac.uk",
-        page_url_suffix = "/news",
-        title = "Oxford History Faculty" + " | " + "News",
-        description = "News from the Faculty of History, University of Oxford",
-        max_items = 20,
-        xml_filename = "oxhist_feed",
-        timezone = ZoneInfo("Europe/London"),
-        css_selectors = CSS_Selectors(
-            item = ".oxfcms-listing-item",
-            title = "h3",
-            url = "a[class*='layout-link-overlay']",
-            date = "span[class*='metadata-field-content']",
-            image = "img",
-            description = "div[class*='card-text']",
-            page_content = "div.oxfcms-text div.clearfix"
-        )
-    ),
-    Feed(
-        id = "OxClassics",
-        base_url = "https://www.classics.ox.ac.uk",
-        page_url_suffix = "/news",
-        title = "Oxford Classics Faculty" + " | " + "News",
-        description = "News from the Faculty of Classics, University of Oxford",
-        max_items = 20,
-        xml_filename = "oxclassics_feed",
-        timezone = ZoneInfo("Europe/London"),
-        css_selectors = CSS_Selectors(
-            item = "article[class*='listing-item']",
-            title = ".listing-title h3",
-            url = ".text-box-wrapper a",
-            date = ".metadata-data",
-            image = ".image img",
-            description = None,
-            page_content = None ### TODO
-        )
-    ),
-    Feed(
-        id = "OxMaths",
-        base_url = "https://www.maths.ox.ac.uk",
-        page_url_suffix = "/news",
-        title = "Oxford Mathematics Institute" + " | " + "News",
-        description = "News from the Mathematics Institute, University of Oxford",
-        max_items = 20,
-        xml_filename = "oxmaths_feed",
-        timezone = ZoneInfo("Europe/London"),
-        css_selectors = CSS_Selectors(
-            item = "article.article",
-            title = "h2",
-            url = "h2 a",
-            date = "time", ### TODO fix this it doesn't work
-            image = "img[class*='media__element']",
-            description = "div[class*='field--type-text-with-summary']",
-            page_content = None
-        )
-    )
-]
+def parse_feeds() -> list[Feed]:
+    with open(JSON_PATH, encoding="utf-8") as f:
+        return [Feed.from_dict(x) for x in load_json(f)]
 
 
 ### FUNCTIONS
@@ -191,7 +128,7 @@ def absolute_url(url, base_url: str):
 
     return urljoin(base_url, url.strip())
 
-def make_timezone_aware(dt: datetime, timezone: ZoneInfo):
+def make_timezone_aware(dt: datetime, timezone: ZoneInfo) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone)
 
@@ -208,7 +145,7 @@ def make_description(image_url: str | None, description_text: str | None = None)
 
     return output
 
-def parse_date(element, timezone: ZoneInfo):
+def parse_date(element, timezone: ZoneInfo) -> datetime | None:
     if element is None:
         return None
 
@@ -435,6 +372,10 @@ def generate_RSS(items: list[Item], feed: Feed) -> str:
 ### MAIN
 
 def main():
+    print("loading feed configurations...")
+
+    feeds: list[Feed] = parse_feeds()
+
     print("Launching Playwright...")
 
     with sync_playwright() as p:
@@ -447,8 +388,8 @@ def main():
         )
 
         feed_count: int = 0
-        for feed in FEEDS:
-            if feed.id in EXCLUDED_FEEDS:
+        for feed in feeds:
+            if not feed.enabled:
                 print(f"Skipping feed: {feed.id}")
                 continue
 
