@@ -102,6 +102,44 @@ FEEDS: list[Feed] = [
             description = "div[class*='card-text']",
             page_content = "div.oxfcms-text div.clearfix"
         )
+    ),
+    Feed(
+        id = "OxClassics",
+        base_url = "https://www.classics.ox.ac.uk",
+        page_url_suffix = "/news",
+        title = "Oxford Classics Faculty" + " | " + "News",
+        description = "News from the Faculty of Classics, University of Oxford",
+        max_items = 20,
+        xml_filename = "oxclassics_feed",
+        timezone = ZoneInfo("Europe/London"),
+        css_selectors = CSS_Selectors(
+            item = "article[class*='listing-item']",
+            title = ".listing-title h3",
+            url = ".text-box-wrapper a",
+            date = ".metadata-data",
+            image = ".image img",
+            description = None,
+            page_content = None ### TODO
+        )
+    ),
+    Feed(
+        id = "OxMaths",
+        base_url = "https://www.maths.ox.ac.uk",
+        page_url_suffix = "/news",
+        title = "Oxford Mathematics Institute" + " | " + "News",
+        description = "News from the Mathematics Institute, University of Oxford",
+        max_items = 20,
+        xml_filename = "oxmaths_feed",
+        timezone = ZoneInfo("Europe/London"),
+        css_selectors = CSS_Selectors(
+            item = "article.article",
+            title = "h2",
+            url = "h2 a",
+            date = "time", ### TODO fix this it doesn't work
+            image = "img[class*='media__element']",
+            description = "div[class*='field--type-text-with-summary']",
+            page_content = None
+        )
     )
 ]
 
