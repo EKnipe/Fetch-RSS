@@ -30,7 +30,7 @@ GITHUB_REPO_URL: str = "https://github.com/" + GITHUB_USERNAME + "/" + GITHUB_RE
 ### CLASS DEFINITIONS
 
 @dataclass
-class CSS_selectors:
+class CSS_Selectors:
     item: str
     title: str
     url: str
@@ -49,7 +49,7 @@ class Feed:
     max_items: int
     xml_filename: str
     timezone: ZoneInfo
-    css_selectors: CSS_selectors
+    css_selectors: CSS_Selectors
 
 @dataclass
 class Item:
@@ -72,7 +72,7 @@ FEEDS: list[Feed] = [
         max_items = 20,
         xml_filename = "oxecon_feed",
         timezone = ZoneInfo("Europe/London"),
-        css_selectors = CSS_selectors(
+        css_selectors = CSS_Selectors(
             item = "article[class*='listing-item']",
             title = "div[class*='listing-title'] h3",
             url = "a[class*='listing-item-link']",
@@ -86,12 +86,12 @@ FEEDS: list[Feed] = [
         id = "OxHist",
         base_url = "https://www.history.ox.ac.uk",
         page_url_suffix = "/news",
-        title = "Oxford Economics Department" + " | " + "News",
+        title = "Oxford History Faculty" + " | " + "News",
         description = "News from the Faculty of History, University of Oxford",
         max_items = 20,
         xml_filename = "oxhist_feed",
         timezone = ZoneInfo("Europe/London"),
-        css_selectors = CSS_selectors(
+        css_selectors = CSS_Selectors(
             item = "",
             title = "",
             url = "",
@@ -151,7 +151,7 @@ def absolute_url(url, base_url: str):
 
     return urljoin(base_url, url.strip())
 
-def make_timezone_aware(dt, timezone: ZoneInfo):
+def make_timezone_aware(dt: datetime, timezone: ZoneInfo):
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone)
 
@@ -161,10 +161,7 @@ def make_description(image_url: str | None, description_text: str | None = None)
     output: str = ""
 
     if image_url:
-        output += (
-            f'<p><img src="{xml_attribute(image_url)}" '
-            f'alt="" /></p>'
-        )
+        output += f'<p><img src="{xml_attribute(image_url)}" alt="" /></p>'
 
     if description_text:
         output += f"<p>{description_text}</p>"
@@ -181,27 +178,27 @@ def parse_date(element, timezone: ZoneInfo):
         datetime_value = datetime_element.get("datetime")
 
         try:
-            parsed = date_parser.parse(datetime_value)
+            parsed: datetime = date_parser.parse(datetime_value)
             return make_timezone_aware(parsed, timezone)
         except (ValueError, OverflowError, TypeError):
             pass
 
-    text = get_text(element)
+    text: str = get_text(element)
 
     if not text:
         return None
 
     try:
-        parsed = date_parser.parse(text, fuzzy=True)
+        parsed: datetime = date_parser.parse(text, fuzzy=True)
         return make_timezone_aware(parsed, timezone)
     except (ValueError, OverflowError, TypeError):
         return None
 
-def get_image_url(element, base_url: str):
+def get_image_url(element, base_url: str) -> str:
     if element is None:
         return ""
 
-    for attribute in ( ### prefer srcset?
+    for attribute in ( ### TODO: Prefer srcset for some feeds?
         "src",
         "data-src",
         "data-lazy-src",
@@ -214,7 +211,7 @@ def get_image_url(element, base_url: str):
     srcset = element.get("srcset") or element.get("data-srcset")
 
     if srcset:
-        candidates: list = []
+        candidates: list[tuple] = []
 
         for candidate in srcset.split(","):
             candidate = candidate.strip()
@@ -255,7 +252,7 @@ def scrape_articles(page_html, feed: Feed) -> list[Item]:
     items: list[Item] = []
 
     for article in articles:
-        item_title = get_text(article.select_one(feed.css_selectors.title))
+        item_title: str = get_text(article.select_one(feed.css_selectors.title))
         if not item_title:
             continue ## Require title
 
@@ -263,21 +260,21 @@ def scrape_articles(page_html, feed: Feed) -> list[Item]:
         if not url_element:
             continue ## Require URL
         
-        item_url = absolute_url(url_element.get("href", ""), feed.base_url)
+        item_url: str = absolute_url(url_element.get("href", ""), feed.base_url)
         if not item_url:
             continue ## Require href
 
-        item_date = None
+        item_date: datetime | None = None
         if feed.css_selectors.date:
             item_date = parse_date(article.select_one(feed.css_selectors.date), feed.timezone)
         if item_date is None:
             item_date = datetime.now(feed.timezone) ## Fallback non-date
 
-        image_url = None
+        image_url: str | None = None
         if feed.css_selectors.image:
             image_url = get_image_url(article.select_one(feed.css_selectors.image), feed.base_url)
 
-        item_description = None
+        item_description: str | None = None
         if feed.css_selectors.description:
             item_description = extract_description(article.select_one(feed.css_selectors.description))
 
@@ -300,7 +297,7 @@ def scrape_articles(page_html, feed: Feed) -> list[Item]:
 
     # Remove duplicate URLs
     unique_items: list[Item] = []
-    seen_urls: set = set()
+    seen_urls: set[str] = set()
 
     for item in items:
         if item.url not in seen_urls:
@@ -327,7 +324,7 @@ def fetch_body(page, url, content_selector: str) -> str:
 
     article_html: str = locator.inner_html()
 
-    soup = BeautifulSoup(article_html, "html.parser")
+    soup: BeautifulSoup = BeautifulSoup(article_html, "html.parser")
 
     for unwanted in soup.select("script, style, noscript"):
         unwanted.decompose()
@@ -359,7 +356,7 @@ def generate_RSS(items: list[Item], feed: Feed) -> str:
     for item in items:
         publication_date: str = format_datetime(item.date_published)
 
-        guid = item.url
+        guid: str = item.url
         
         RSS_item: str = f"""
     <item>
@@ -374,7 +371,7 @@ def generate_RSS(items: list[Item], feed: Feed) -> str:
 
     last_build_date: str = format_datetime(datetime.now(feed.timezone))
 
-    rss: str = f"""<?xml version="1.0" encoding="UTF-8"?>
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
      xmlns:atom="http://www.w3.org/2005/Atom"
      xmlns:media="http://search.yahoo.com/mrss/">
@@ -385,7 +382,6 @@ def generate_RSS(items: list[Item], feed: Feed) -> str:
     <language>en-gb</language>
     <lastBuildDate>{xml_escape(last_build_date)}</lastBuildDate>
     <generator>{GITHUB_REPO_NAME}</generator>
-    <ttl>60</ttl>
     <atom:link
       href="{xml_attribute(GITHUB_PAGES_URL + "/" + feed.xml_filename + XML_EXT)}"
       rel="self"
@@ -394,8 +390,6 @@ def generate_RSS(items: list[Item], feed: Feed) -> str:
   </channel>
 </rss>
 """
-
-    return rss
 
 
 ### MAIN
@@ -409,10 +403,7 @@ def main():
         )
 
         page = browser.new_page(
-            user_agent = (
-                "Mozilla/5.0 (compatible; www.economics.ox.ac.uk-news-RSS/1.0; "
-                f"+{GITHUB_REPO_URL}/)"
-            )
+            user_agent = f"Mozilla/5.0 (compatible; {GITHUB_REPO_NAME}/1.0; +{GITHUB_REPO_URL}/)"
         )
 
         for feed in FEEDS:
@@ -431,7 +422,7 @@ def main():
                 article_body = None
                 if feed.css_selectors.page_content:
                     try:
-                        article_body = fetch_body(page, item.url, feed.css_selectors.page_content)
+                        article_body: str = fetch_body(page, item.url, feed.css_selectors.page_content)
                     except Exception as e:
                         print(f"Failed to fetch article contents from {item.url}: {e}")
 
