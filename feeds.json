@@ -15,9 +15,7 @@
       "description": null,
       "page_content": "div.content div.field-name-field-content div.field-item"
     },
-    "max_items": 20,
-    "timezone": "Europe/London",
-    "enabled": true
+    "timezone": "Europe/London"
   },
   {
     "id": "OxHist",
@@ -35,9 +33,7 @@
       "description": "div[class*='card-text']",
       "page_content": "div.oxfcms-text div.clearfix"
     },
-    "max_items": 20,
-    "timezone": "Europe/London",
-    "enabled": true
+    "timezone": "Europe/London"
   },
   {
     "id": "OxClassics",
@@ -53,11 +49,9 @@
       "date": ".metadata-data",
       "image": ".image img",
       "description": null,
-      "page_content": null
+      "page_content": "div.content div.field-name-field-content div.field-item"
     },
-    "max_items": 20,
-    "timezone": "Europe/London",
-    "enabled": true
+    "timezone": "Europe/London"
   },
   {
     "id": "OxMaths",
@@ -70,13 +64,29 @@
       "item": "article.article",
       "title": "h2",
       "url": "h2 a",
-      "date": "time",
+      "date": "td.news-date",
       "image": "img[class*='media__element']",
       "description": "div[class*='field--type-text-with-summary']",
       "page_content": null
     },
-    "max_items": 20,
-    "timezone": "Europe/London",
-    "enabled": true
+    "timezone": "Europe/London"
+  },
+  {
+    "id": "OxBio",
+    "base_url": "https://www.biology.ox.ac.uk",
+    "page_url_suffix": "/news",
+    "title": "Oxford Biology Department | News",
+    "description": "News from the Department of Biology, University of Oxford",
+    "xml_filename": "oxbio_feed",
+    "css_selectors": {
+      "item": "article[class*='listing-item']",
+      "title": "div[class*='listing-title'] h3",
+      "url": "a[class*='listing-item-link']",
+      "date": "div[class*='metadata-data']",
+      "image": "div[class*='image'] img",
+      "description": null,
+      "page_content": "div.content div.field-name-field-content div.field-item"
+    },
+    "timezone": "Europe/London"
   }
 ]
