@@ -21,7 +21,7 @@ OUTPUT_DIR = Path("_site")
 XML_EXT: str = ".xml"
 
 GITHUB_USERNAME: str = "EKnipe"
-GITHUB_REPO_NAME: str = "www.economics.ox.ac.uk-news-RSS"
+GITHUB_REPO_NAME: str = "Fetch-RSS"
 
 GITHUB_PAGES_URL: str = "https://" + GITHUB_USERNAME + ".github.io/" + GITHUB_REPO_NAME
 GITHUB_REPO_URL: str = "https://github.com/" + GITHUB_USERNAME + "/" + GITHUB_REPO_NAME
