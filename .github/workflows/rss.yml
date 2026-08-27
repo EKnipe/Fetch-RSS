@@ -1,4 +1,4 @@
-name: Update RSS feed for www.economics.ox.ac.uk/news
+name: Update RSS feeds
 
 on:
   workflow_dispatch: ## Manual run

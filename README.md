@@ -1,12 +1,22 @@
-# www.economics.ox.ac.uk/news RSS
+# [www.economics.ox.ac.uk/news](https://www.economics.ox.ac.uk/news) RSS
 
-RSS feed for [www.economics.ox.ac.uk/news](https://www.economics.ox.ac.uk/news), the news page of the Department of Economics, University of Oxford.
+RSS feed generator for selected sites which lack native feeds.
+
+Supports:
+
+- [www.economics.ox.ac.uk/news](https://www.economics.ox.ac.uk/news), the news page of the Department of Economics, University of Oxford.
+- [www.history.ox.ac.uk/news](https://www.history.ox.ac.uk/news), the news page of the Faculty of History, University of Oxford.
 
 ## Usage
 
-Add this link to your RSS feed reader: [eknipe.github.io/www.economics.ox.ac.uk-news-RSS/feed.xml](https://eknipe.github.io/www.economics.ox.ac.uk-news-RSS/feed.xml)
+Add the corresponding XML link(s) to your RSS feed reader:
 
-Alternatively, clone this repository and run the script manually to create a local XML file.
+| Feed | Site | XML link |
+| --- | --- | --- |
+| Oxford Economics Department news | [www.economics.ox.ac.uk/news](https://www.economics.ox.ac.uk/news) | [eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxecon_feed.xml](https://eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxecon_feed.xml) |
+| Oxford History Faculty news | [www.history.ox.ac.uk/news](https://www.history.ox.ac.uk/news) | [eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxhist_feed.xml](https://eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxhist_feed.xml) |
+
+Alternatively, clone this repository and run the script manually to create local XML files.
 
 ## Dependencies
 

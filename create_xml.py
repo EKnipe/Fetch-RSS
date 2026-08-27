@@ -1,5 +1,6 @@
 ### IMPORTS
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from email.utils import format_datetime
 from html import escape as html_escape
@@ -11,54 +12,119 @@ from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 from playwright.sync_api import sync_playwright
 
-### CONSTANTS
+### GLOBAL CONSTANTS
 
-MAX_ITEMS: int = 20
-
-FEED_TITLE: str = "Oxford Economics Department" + " | " + "News"
-FEED_DESCRIPTION: str = "News from the Department of Economics, University of Oxford"
+GLOBAL_MAX_ITEMS: int = 20
 
 ## Feed XML output
 OUTPUT_DIR = Path("_site")
-OUTPUT_FILE = OUTPUT_DIR / "feed.xml"
+XML_EXT: str = ".xml"
 
-FEED_URL: str = "https://EKnipe.github.io/www.economics.ox.ac.uk-news-RSS/feed.xml"
+GITHUB_USERNAME: str = "EKnipe"
+GITHUB_REPO_NAME: str = "www.economics.ox.ac.uk-news-RSS"
 
-BASE_URL: str = "https://www.economics.ox.ac.uk"
-PAGE_URL: str = BASE_URL + "/news"
+GITHUB_PAGES_URL: str = "https://" + GITHUB_USERNAME + ".github.io/" + GITHUB_REPO_NAME
+GITHUB_REPO_URL: str = "https://github.com/" + GITHUB_USERNAME + "/" + GITHUB_REPO_NAME
 
-LOCAL_TIMEZONE = ZoneInfo("Europe/London") ## Oxford timezone
 
-## CSS Selectors (Determined using FiveFilters Feed Creator)
-ITEM_SELECTOR: str = "article[class*='listing-item']"
-TITLE_SELECTOR: str = "div[class*='listing-title'] h3"
-URL_SELECTOR: str = "a[class*='listing-item-link']"
-DATE_SELECTOR: str = "div[class*='metadata-data']"
-IMAGE_SELECTOR: str = "div[class*='image'] img"
+### CLASS DEFINITIONS
 
-## Selector for page content
-CONTENT_SELECTOR: str = "div.content div.field-name-field-content div.field-item"
+@dataclass
+class CSS_Selectors:
+    item: str
+    title: str
+    url: str
+    date: str | None
+    image: str | None
+    description: str | None
+    page_content: str | None
+
+@dataclass
+class Feed:
+    id: str
+    base_url: str
+    page_url_suffix: str
+    title: str
+    description: str
+    max_items: int
+    xml_filename: str
+    timezone: ZoneInfo
+    css_selectors: CSS_Selectors
+
+@dataclass
+class Item:
+    title: str
+    url: str
+    date_published: datetime
+    description: str | None
+    image_url: str | None
+
+
+### FEEDS
+
+EXCLUDED_FEEDS: list[str] = [] ### Avoid uneccesarily fetching some feeds when testing
+
+FEEDS: list[Feed] = [
+    Feed(
+        id = "OxEcon",
+        base_url = "https://www.economics.ox.ac.uk",
+        page_url_suffix = "/news",
+        title = "Oxford Economics Department" + " | " + "News",
+        description = "News from the Department of Economics, University of Oxford",
+        max_items = 20,
+        xml_filename = "oxecon_feed",
+        timezone = ZoneInfo("Europe/London"),
+        css_selectors = CSS_Selectors(
+            item = "article[class*='listing-item']",
+            title = "div[class*='listing-title'] h3",
+            url = "a[class*='listing-item-link']",
+            date = "div[class*='metadata-data']",
+            image = "div[class*='image'] img",
+            description = None,
+            page_content = "div.content div.field-name-field-content div.field-item"
+        )
+    ),
+    Feed(
+        id = "OxHist",
+        base_url = "https://www.history.ox.ac.uk",
+        page_url_suffix = "/news",
+        title = "Oxford History Faculty" + " | " + "News",
+        description = "News from the Faculty of History, University of Oxford",
+        max_items = 20,
+        xml_filename = "oxhist_feed",
+        timezone = ZoneInfo("Europe/London"),
+        css_selectors = CSS_Selectors(
+            item = ".oxfcms-listing-item",
+            title = "h3",
+            url = "a[class*='layout-link-overlay']",
+            date = "span[class*='metadata-field-content']",
+            image = "img",
+            description = "div[class*='card-text']",
+            page_content = "div.oxfcms-text div.clearfix"
+        )
+    )
+]
 
 
 ### FUNCTIONS
 
 ## HTTP
 
-def fetch_page(page):
+def fetch_page(page, feed: Feed):
     page.goto(
-        PAGE_URL,
+        feed.base_url + feed.page_url_suffix,
         wait_until = "domcontentloaded",
         timeout = 60_000
     )
 
     page.wait_for_selector(
-        TITLE_SELECTOR,
+        feed.css_selectors.title,
         state = "visible",
         timeout = 30_000,
     )
 
     page.wait_for_selector(
-        URL_SELECTOR,
+        feed.css_selectors.url,
         state = "attached",
         timeout = 30_000,
     )
@@ -81,28 +147,30 @@ def get_text(element) -> str:
         element.get_text(" ", strip=True),
     )
 
-def absolute_url(url):
+def absolute_url(url, base_url: str):
     if not url:
         return ""
 
-    return urljoin(BASE_URL, url.strip())
+    return urljoin(base_url, url.strip())
 
-def make_timezone_aware(dt):
+def make_timezone_aware(dt: datetime, timezone: ZoneInfo):
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=LOCAL_TIMEZONE)
+        return dt.replace(tzinfo=timezone)
 
-    return dt.astimezone(LOCAL_TIMEZONE)
+    return dt.astimezone(timezone)
 
-def make_description(image_url: str) -> str:
+def make_description(image_url: str | None, description_text: str | None = None) -> str:
+    output: str = ""
+
     if image_url:
-        return (
-            f'<p><img src="{xml_attribute(image_url)}" '
-            f'alt="" /></p>'
-        )
-    else:
-        return ""
+        output += f'<p><img src="{xml_attribute(image_url)}" alt="" /></p>'
 
-def parse_date(element):
+    if description_text:
+        output += f"<p>{description_text}</p>"
+
+    return output
+
+def parse_date(element, timezone: ZoneInfo):
     if element is None:
         return None
 
@@ -112,27 +180,27 @@ def parse_date(element):
         datetime_value = datetime_element.get("datetime")
 
         try:
-            parsed = date_parser.parse(datetime_value)
-            return make_timezone_aware(parsed)
+            parsed: datetime = date_parser.parse(datetime_value)
+            return make_timezone_aware(parsed, timezone)
         except (ValueError, OverflowError, TypeError):
             pass
 
-    text = get_text(element)
+    text: str = get_text(element)
 
     if not text:
         return None
 
     try:
-        parsed = date_parser.parse(text, fuzzy=True)
-        return make_timezone_aware(parsed)
+        parsed: datetime = date_parser.parse(text, fuzzy=True)
+        return make_timezone_aware(parsed, timezone)
     except (ValueError, OverflowError, TypeError):
         return None
 
-def get_image_url(element):
+def get_image_url(element, base_url: str) -> str:
     if element is None:
         return ""
 
-    for attribute in ( ### prefer srcset?
+    for attribute in ( ### TODO: Prefer srcset for some feeds?
         "src",
         "data-src",
         "data-lazy-src",
@@ -140,12 +208,12 @@ def get_image_url(element):
     ):
         value = element.get(attribute)
         if value:
-            return absolute_url(value)
+            return absolute_url(value, base_url)
 
     srcset = element.get("srcset") or element.get("data-srcset")
 
     if srcset:
-        candidates: list = []
+        candidates: list[tuple] = []
 
         for candidate in srcset.split(","):
             candidate = candidate.strip()
@@ -165,78 +233,91 @@ def get_image_url(element):
 
         if candidates:
             candidates.sort(key=lambda x: x[0])
-            return absolute_url(candidates[-1][1])
+            return absolute_url(candidates[-1][1], base_url)
 
     return ""
 
+def extract_description(element) -> str:
+    if element is None:
+        return ""
+
+    return "TODO" ### TODO
+
 ## Scraper
 
-def scrape_articles(page_html) -> list[dict]:
-    articles = BeautifulSoup(page_html, "html.parser").select(ITEM_SELECTOR)
+def scrape_articles(page_html, feed: Feed) -> list[Item]:
+    articles = BeautifulSoup(page_html, "html.parser").select(feed.css_selectors.item)
 
     if not articles:
-        raise RuntimeError("No articles found at " + PAGE_URL)
+        raise RuntimeError("No articles found at " + feed.base_url + feed.page_url_suffix)
     
-    items: list[dict] = []
+    items: list[Item] = []
 
     for article in articles:
-        item_title = get_text(article.select_one(TITLE_SELECTOR))
+        item_title: str = get_text(article.select_one(feed.css_selectors.title))
         if not item_title:
             continue ## Require title
 
-        url_element = article.select_one(URL_SELECTOR)
+        url_element = article.select_one(feed.css_selectors.url)
         if not url_element:
             continue ## Require URL
         
-        item_url = absolute_url(url_element.get("href", ""))
+        item_url: str = absolute_url(url_element.get("href", ""), feed.base_url)
         if not item_url:
             continue ## Require href
 
-        item_date = parse_date(article.select_one(DATE_SELECTOR))
+        item_date: datetime | None = None
+        if feed.css_selectors.date:
+            item_date = parse_date(article.select_one(feed.css_selectors.date), feed.timezone)
         if item_date is None:
-            item_date = datetime.now(LOCAL_TIMEZONE) ## Fallback non-date
+            item_date = datetime.now(feed.timezone) ## Fallback non-date
 
-        image_url = get_image_url(article.select_one(IMAGE_SELECTOR))
+        image_url: str | None = None
+        if feed.css_selectors.image:
+            image_url = get_image_url(article.select_one(feed.css_selectors.image), feed.base_url)
 
-        item_description = make_description(image_url)
+        item_description: str | None = None
+        if feed.css_selectors.description:
+            item_description = extract_description(article.select_one(feed.css_selectors.description))
 
-        items.append({
-                "title": item_title,
-                "url": item_url,
-                "description": item_description,
-                "published": item_date
-        })
+        items.append(Item(
+                title = item_title,
+                url = item_url,
+                description = item_description,
+                date_published = item_date,
+                image_url = image_url
+        ))
     
     if not items:
         raise RuntimeError("Failed to extract items")
 
     # Sort items by date (newest first)
     items.sort(
-        key = lambda item: item["published"],
+        key = lambda item: item.date_published,
         reverse = True
     )
 
     # Remove duplicate URLs
-    unique_items: list[dict] = []
-    seen_urls: set = set()
+    unique_items: list[Item] = []
+    seen_urls: set[str] = set()
 
     for item in items:
-        if item["url"] not in seen_urls:
-            seen_urls.add(item["url"])
+        if item.url not in seen_urls:
+            seen_urls.add(item.url)
             unique_items.append(item)
 
-    return unique_items[:MAX_ITEMS]
+    return unique_items[:min(GLOBAL_MAX_ITEMS, feed.max_items)]
 
 ## Article body fetcher
 
-def fetch_body(page, url) -> str:
+def fetch_body(page, url, content_selector: str) -> str:
     page.goto(
         url,
         wait_until = "domcontentloaded",
         timeout = 60_000
     )
 
-    locator = page.locator(CONTENT_SELECTOR).first
+    locator = page.locator(content_selector).first
 
     locator.wait_for(
         state = "visible",
@@ -245,7 +326,7 @@ def fetch_body(page, url) -> str:
 
     article_html: str = locator.inner_html()
 
-    soup = BeautifulSoup(article_html, "html.parser")
+    soup: BeautifulSoup = BeautifulSoup(article_html, "html.parser")
 
     for unwanted in soup.select("script, style, noscript"):
         unwanted.decompose()
@@ -271,49 +352,46 @@ def cdata(value) -> str:
 
 ## Generate RSS
 
-def generate_RSS(items: list[dict]) -> str:
+def generate_RSS(items: list[Item], feed: Feed) -> str:
     RSS_items: list[str] = []
 
     for item in items:
-        publication_date: str = format_datetime(item["published"])
+        publication_date: str = format_datetime(item.date_published)
 
-        guid = item["url"]
+        guid: str = item.url
         
         RSS_item: str = f"""
     <item>
-      <title>{cdata(item["title"])}</title>
-      <link>{xml_escape(item["url"])}</link>
+      <title>{cdata(item.title)}</title>
+      <link>{xml_escape(item.url)}</link>
       <guid isPermaLink="true">{xml_escape(guid)}</guid>
       <pubDate>{xml_escape(publication_date)}</pubDate>
-      <description>{cdata(item["description"])}</description>
+      <description>{cdata(item.description)}</description>
     </item>"""
 
         RSS_items.append(RSS_item)
 
-    last_build_date: str = format_datetime(datetime.now(LOCAL_TIMEZONE))
+    last_build_date: str = format_datetime(datetime.now(feed.timezone))
 
-    rss: str = f"""<?xml version="1.0" encoding="UTF-8"?>
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
      xmlns:atom="http://www.w3.org/2005/Atom"
      xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
-    <title>{cdata(FEED_TITLE)}</title>
-    <link>{xml_escape(PAGE_URL)}</link>
-    <description>{cdata(FEED_DESCRIPTION)}</description>
+    <title>{cdata(feed.title)}</title>
+    <link>{xml_escape(feed.base_url + feed.page_url_suffix)}</link>
+    <description>{cdata(feed.description)}</description>
     <language>en-gb</language>
     <lastBuildDate>{xml_escape(last_build_date)}</lastBuildDate>
-    <generator>Oxford Economics RSS scraper</generator>
-    <ttl>60</ttl>
+    <generator>{GITHUB_REPO_NAME}</generator>
     <atom:link
-      href="{xml_attribute(FEED_URL)}"
+      href="{xml_attribute(GITHUB_PAGES_URL + "/" + feed.xml_filename + XML_EXT)}"
       rel="self"
       type="application/rss+xml" />
 {''.join(RSS_items)}
   </channel>
 </rss>
 """
-
-    return rss
 
 
 ### MAIN
@@ -327,39 +405,58 @@ def main():
         )
 
         page = browser.new_page(
-            user_agent = (
-                "Mozilla/5.0 (compatible; www.economics.ox.ac.uk-news-RSS/1.0; "
-                "+https://github.com/EKnipe/www.economics.ox.ac.uk-news-RSS/)"
-            )
+            user_agent = f"Mozilla/5.0 (compatible; {GITHUB_REPO_NAME}/1.0; +{GITHUB_REPO_URL}/)"
         )
+
+        feed_count: int = 0
+        for feed in FEEDS:
+            if feed.id in EXCLUDED_FEEDS:
+                print(f"Skipping feed: {feed.id}")
+                continue
+
+            print(f"Processing feed: {feed.id}")
     
-        print(f"Fetching {PAGE_URL}...")
+            print(f"Fetching {feed.base_url + feed.page_url_suffix}...")
 
-        page_html = fetch_page(page)
+            page_html = fetch_page(page, feed)
 
-        print("Extracting news items...")
+            print("Extracting news items...")
 
-        items: list[dict] = scrape_articles(page_html)
+            items: list[Item] = scrape_articles(page_html, feed)
 
-        for item in items:
-            try:
-                article_body = fetch_body(page, url = item["url"])
-                item["description"] += article_body
-            except Exception as e:
-                print(f"Failed to fetch article contents from {item["url"]}: {e}")
+            for item in items:
+                article_body: str | None = None
+                if feed.css_selectors.page_content:
+                    try:
+                        article_body = fetch_body(page, item.url, feed.css_selectors.page_content)
+                    except Exception as e:
+                        print(f"Failed to fetch article contents from {item.url}: {e}")
 
-    print(f"Found {len(items)} items. Generating RSS...")
+                if article_body:
+                    if item.description and (len(item.description) > len(article_body)):
+                        print(f"WARNING: Overwrote item description with small content for item {item.url}")
 
-    rss: str = generate_RSS(items)
+                    item.description = make_description(item.image_url) + article_body
+                else:
+                    item.description = make_description(item.image_url, item.description)
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+            print(f"Found {len(items)} items. Generating RSS...")
 
-    OUTPUT_FILE.write_text(
-        rss,
-        encoding="utf-8",
-    )
+            rss: str = generate_RSS(items, feed)
 
-    print(f"Wrote {OUTPUT_FILE}")
+            OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+            output_file: Path = OUTPUT_DIR / (feed.xml_filename + XML_EXT)
+
+            output_file.write_text(
+                rss,
+                encoding="utf-8",
+            )
+
+            print(f"Wrote {output_file}")
+            feed_count += 1
+
+    print(f"{feed_count} {"feed" if feed_count == 1 else "feeds"} fetched")
 
 
 ### EXECUTION
