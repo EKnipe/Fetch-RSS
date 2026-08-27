@@ -12,10 +12,11 @@ Supports:
 Add the corresponding XML link(s) to your RSS feed reader:
 
 | Feed | Site | XML link |
-| Oxford Economics Department \| News | [www.economics.ox.ac.uk/news](https://www.economics.ox.ac.uk/news) | [eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxecon_feed.xml](https://eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxecon_feed.xml) |
-| Oxford History Faculty \| News | [www.history.ox.ac.uk/news](https://www.history.ox.ac.uk/news) | [eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxhist_feed.xml](https://eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxhist_feed.xml) |
+| --- | --- | --- |
+| Oxford Economics Department news | [www.economics.ox.ac.uk/news](https://www.economics.ox.ac.uk/news) | [eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxecon_feed.xml](https://eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxecon_feed.xml) |
+| Oxford History Faculty news | [www.history.ox.ac.uk/news](https://www.history.ox.ac.uk/news) | [eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxhist_feed.xml](https://eknipe.github.io/www.economics.ox.ac.uk-news-RSS/oxhist_feed.xml) |
 
-Alternatively, clone this repository and run the script manually to create a local XML file.
+Alternatively, clone this repository and run the script manually to create local XML files.
 
 ## Dependencies
 
