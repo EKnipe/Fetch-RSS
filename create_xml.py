@@ -27,7 +27,7 @@ GITHUB_PAGES_URL: str = "https://" + GITHUB_USERNAME + ".github.io/" + GITHUB_RE
 GITHUB_REPO_URL: str = "https://github.com/" + GITHUB_USERNAME + "/" + GITHUB_REPO_NAME
 
 
-### FEEDS
+### CLASS DEFINITIONS
 
 @dataclass
 class CSS_selectors:
@@ -50,6 +50,17 @@ class Feed:
     xml_filename: str
     timezone: ZoneInfo
     css_selectors: CSS_selectors
+
+@dataclass
+class Item:
+    title: str
+    url: str
+    date_published: datetime
+    description: str | None
+    image_url: str | None
+
+
+### FEEDS
 
 FEEDS: list[Feed] = [
     Feed(
@@ -146,14 +157,19 @@ def make_timezone_aware(dt, timezone: ZoneInfo):
 
     return dt.astimezone(timezone)
 
-def make_description(image_url: str | None) -> str:
+def make_description(image_url: str | None, description_text: str | None = None) -> str:
+    output: str = ""
+
     if image_url:
-        return (
+        output += (
             f'<p><img src="{xml_attribute(image_url)}" '
             f'alt="" /></p>'
         )
-    else:
-        return ""
+
+    if description_text:
+        output += f"<p>{description_text}</p>"
+
+    return output
 
 def parse_date(element, timezone: ZoneInfo):
     if element is None:
@@ -222,15 +238,21 @@ def get_image_url(element, base_url: str):
 
     return ""
 
+def extract_description(element) -> str:
+    if element is None:
+        return ""
+
+    return "TODO" ### TODO
+
 ## Scraper
 
-def scrape_articles(page_html, feed: Feed) -> list[dict]:
+def scrape_articles(page_html, feed: Feed) -> list[Item]:
     articles = BeautifulSoup(page_html, "html.parser").select(feed.css_selectors.item)
 
     if not articles:
         raise RuntimeError("No articles found at " + feed.base_url + feed.page_url_suffix)
     
-    items: list[dict] = []
+    items: list[Item] = []
 
     for article in articles:
         item_title = get_text(article.select_one(feed.css_selectors.title))
@@ -255,32 +277,34 @@ def scrape_articles(page_html, feed: Feed) -> list[dict]:
         if feed.css_selectors.image:
             image_url = get_image_url(article.select_one(feed.css_selectors.image), feed.base_url)
 
-        ### TODO: Add description selection
-        item_description = make_description(image_url)
+        item_description = None
+        if feed.css_selectors.description:
+            item_description = extract_description(article.select_one(feed.css_selectors.description))
 
-        items.append({
-                "title": item_title,
-                "url": item_url,
-                "description": item_description,
-                "published": item_date
-        })
+        items.append(Item(
+                title = item_title,
+                url = item_url,
+                description = item_description,
+                date_published = item_date,
+                image_url = image_url
+        ))
     
     if not items:
         raise RuntimeError("Failed to extract items")
 
     # Sort items by date (newest first)
     items.sort(
-        key = lambda item: item["published"],
+        key = lambda item: item.date_published,
         reverse = True
     )
 
     # Remove duplicate URLs
-    unique_items: list[dict] = []
+    unique_items: list[Item] = []
     seen_urls: set = set()
 
     for item in items:
-        if item["url"] not in seen_urls:
-            seen_urls.add(item["url"])
+        if item.url not in seen_urls:
+            seen_urls.add(item.url)
             unique_items.append(item)
 
     return unique_items[:min(GLOBAL_MAX_ITEMS, feed.max_items)]
@@ -329,21 +353,21 @@ def cdata(value) -> str:
 
 ## Generate RSS
 
-def generate_RSS(items: list[dict], feed: Feed) -> str:
+def generate_RSS(items: list[Item], feed: Feed) -> str:
     RSS_items: list[str] = []
 
     for item in items:
-        publication_date: str = format_datetime(item["published"])
+        publication_date: str = format_datetime(item.date_published)
 
-        guid = item["url"]
+        guid = item.url
         
         RSS_item: str = f"""
     <item>
-      <title>{cdata(item["title"])}</title>
-      <link>{xml_escape(item["url"])}</link>
+      <title>{cdata(item.title)}</title>
+      <link>{xml_escape(item.url)}</link>
       <guid isPermaLink="true">{xml_escape(guid)}</guid>
       <pubDate>{xml_escape(publication_date)}</pubDate>
-      <description>{cdata(item["description"])}</description>
+      <description>{cdata(item.description)}</description>
     </item>"""
 
         RSS_items.append(RSS_item)
@@ -401,15 +425,23 @@ def main():
 
             print("Extracting news items...")
 
-            items: list[dict] = scrape_articles(page_html, feed)
+            items: list[Item] = scrape_articles(page_html, feed)
 
             for item in items:
+                article_body = None
                 if feed.css_selectors.page_content:
                     try:
-                        article_body = fetch_body(page, item["url"], feed.css_selectors.page_content)
-                        item["description"] += article_body
+                        article_body = fetch_body(page, item.url, feed.css_selectors.page_content)
                     except Exception as e:
-                        print(f"Failed to fetch article contents from {item["url"]}: {e}")
+                        print(f"Failed to fetch article contents from {item.url}: {e}")
+
+                if article_body:
+                    if item.description and (len(item.description) > len(article_body)):
+                        print(f"WARNING: Overwrote item description with small content for item {item.url}")
+
+                    item.description = make_description(item.image_url) + article_body
+                else:
+                    item.description = make_description(item.image_url, item.description)
 
             print(f"Found {len(items)} items. Generating RSS...")
 
