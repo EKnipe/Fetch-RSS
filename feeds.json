@@ -7,6 +7,7 @@
     "description": "News from the Department of Economics, University of Oxford",
     "xml_filename": "oxecon_feed",
     "main_page_requires_js": true,
+    "page_num_selector": "?page-3990981=",
     "css_selectors": {
       "item": "article[class*='listing-item']",
       "title": "div[class*='listing-title'] h3",
@@ -26,6 +27,7 @@
     "description": "News from the Faculty of History, University of Oxford",
     "xml_filename": "oxhist_feed",
     "main_page_requires_js": false,
+    "page_num_selector": null,
     "css_selectors": {
       "item": ".oxfcms-listing-item",
       "title": "h3",
@@ -45,6 +47,7 @@
     "description": "News from the Faculty of Classics, University of Oxford",
     "xml_filename": "oxclassics_feed",
     "main_page_requires_js": true,
+    "page_num_selector": "?page-463491=",
     "css_selectors": {
       "item": "article[class*='listing-item']",
       "title": ".listing-title h3",
@@ -84,14 +87,14 @@
     "description": "News from the Department of Biology, University of Oxford",
     "xml_filename": "oxbio_feed",
     "main_page_requires_js": true,
+    "page_num_selector": "?page-3311136=",
     "css_selectors": {
       "item": "article[class*='listing-item']",
       "title": "div[class*='listing-title'] h3",
       "url": "a[class*='listing-item-link']",
       "date": "div[class*='metadata-data']",
       "image": "div[class*='image'] img",
-      "description": null,
-      "page_content": null
+      "description": null
     },
     "timezone": "Europe/London"
   }
