@@ -97,5 +97,21 @@
       "description": null
     },
     "timezone": "Europe/London"
+  },
+  {
+    "id": "OxUni",
+    "base_url": "https://www.ox.ac.uk",
+    "page_url_suffix": "/news-listing",
+    "title": "University of Oxford | News",
+    "description": "News from the University of Oxford",
+    "xml_filename": "oxuni_feed",
+    "page_num_selector": "?page=",
+    "css_selectors": {
+      "item": "",
+      "title": "",
+      "url": ""
+    },
+    "timezone": "Europe/London",
+    "enabled": false
   }
 ]
