@@ -15,7 +15,8 @@
       "description": null,
       "page_content": "div.content div.field-name-field-content div.field-item"
     },
-    "timezone": "Europe/London"
+    "timezone": "Europe/London",
+    "enabled": false
   },
   {
     "id": "OxHist",
@@ -33,7 +34,8 @@
       "description": "div[class*='card-text']",
       "page_content": "div.oxfcms-text div.clearfix"
     },
-    "timezone": "Europe/London"
+    "timezone": "Europe/London",
+    "enabled": false
   },
   {
     "id": "OxClassics",
@@ -51,7 +53,8 @@
       "description": null,
       "page_content": "div.content div.field-name-field-content div.field-items div.field-item"
     },
-    "timezone": "Europe/London"
+    "timezone": "Europe/London",
+    "enabled": false
   },
   {
     "id": "OxMaths",
@@ -69,7 +72,8 @@
       "description": "div[class*='field--type-text-with-summary']",
       "page_content": null
     },
-    "timezone": "Europe/London"
+    "timezone": "Europe/London",
+    "enabled": false
   },
   {
     "id": "OxBio",
@@ -87,6 +91,7 @@
       "description": null,
       "page_content": null
     },
-    "timezone": "Europe/London"
+    "timezone": "Europe/London",
+    "enabled": false
   }
 ]
