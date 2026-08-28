@@ -14,26 +14,41 @@ from dateutil import parser as date_parser
 from playwright.sync_api import sync_playwright
 from requests import get as get_request
 
-### GLOBAL CONSTANTS
-
-GLOBAL_MAX_ITEMS: int = 20
-GLOBAL_MAX_PAGES: int = 22
-TIMEOUT_S: int = 10
-PAUSE_MS: int = 1_000
-
-FEEDS_ENABLED_DEFAULT: bool = True
-
-DEFAULT_TIMEZONE: ZoneInfo = ZoneInfo("UTC")
-
-GITHUB_USERNAME: str = "EKnipe"
-GITHUB_REPO_NAME: str = "Fetch-RSS"
+### PATHS
 
 ## JSON
+CONFIG_JSON_PATH: Path = Path("config.json")
 FEEDS_JSON_PATH: Path = Path("feeds.json")
 
 ## Feed XML output
 OUTPUT_DIR: Path = Path("_site")
 XML_EXT: str = ".xml"
+
+
+### LOAD CONFIG
+
+def parse_config() -> dict:
+    with open(CONFIG_JSON_PATH, encoding="utf-8") as f:
+        return load_json(f)
+
+CONFIG: dict = parse_config()
+
+GLOBAL_MAX_ITEMS: int = int(CONFIG["global_max_items"])
+GLOBAL_MAX_PAGES: int = int(CONFIG["global_max_pages"])
+TIMEOUT_S: int = int(CONFIG["timeout_s"])
+PAUSE_MS: int = int(CONFIG["pause_ms"])
+
+FEED_ENABLED_DEFAULT: bool = bool(CONFIG["feed_enabled_default"])
+JS_ENABLED_MAIN_PAGE_DEFAULT: bool = bool(CONFIG["js_enabled_main_page_default"]) ### True -> conservative default
+JS_ENABLED_ARTICLES_DEFAULT: bool = bool(CONFIG["js_enabled_articles_default"]) ### False -> aggressive default to discover what breaks
+
+DEFAULT_TIMEZONE: ZoneInfo = ZoneInfo(str(CONFIG["timezone_default"]))
+
+GITHUB_USERNAME: str = str(CONFIG["github_username"])
+GITHUB_REPO_NAME: str = str(CONFIG["github_repo_name"])
+
+
+### DERIVED CONSTANTS
 
 TIMEOUT_MS: int = TIMEOUT_S * 1000
 
@@ -69,12 +84,12 @@ class Feed:
     xml_filename: str
     css_selectors: CSS_Selectors
     page_num_selector: str | None = None
-    main_page_requires_js: bool = True ### conservative default
-    articles_require_js: bool = False ### aggressive default to discover what breaks
+    main_page_requires_js: bool = JS_ENABLED_MAIN_PAGE_DEFAULT
+    articles_require_js: bool = JS_ENABLED_ARTICLES_DEFAULT
     max_items: int = GLOBAL_MAX_ITEMS
     max_pages: int = GLOBAL_MAX_PAGES
     timezone: ZoneInfo = DEFAULT_TIMEZONE
-    enabled: bool = FEEDS_ENABLED_DEFAULT
+    enabled: bool = FEED_ENABLED_DEFAULT
 
     @classmethod
     def from_dict(cls, data: dict) -> "Feed":
@@ -91,14 +106,14 @@ class Item:
     description: str | None
     image_url: str | None
 
+
+### FUNCTIONS
+
 def parse_feeds() -> list[Feed]:
     with open(FEEDS_JSON_PATH, encoding="utf-8") as f:
         return [Feed.from_dict(x) for x in load_json(f)]
 
-
-### FUNCTIONS
-
-## HTTP
+## Main Page Fetchers
 
 def fetch_page_playwright(page, css_selectors: CSS_Selectors, url: str):
     page.goto(
@@ -401,7 +416,7 @@ def generate_RSS(items: list[Item], feed: Feed) -> str:
 def main():
     print("loading feed configurations...")
 
-    feeds: list[Feed] = parse_feeds()
+    FEEDS: list[Feed] = parse_feeds()
 
     print("Launching Playwright...")
 
@@ -415,7 +430,7 @@ def main():
         )
 
         feed_count: int = 0
-        for feed in feeds:
+        for feed in FEEDS:
             try:
                 if not feed.enabled:
                     print(f"Skipping feed: {feed.id}")

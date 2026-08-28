@@ -1,0 +1,12 @@
+{
+    "global_max_items": 20,
+    "global_max_pages": 22,
+    "timeout_s": 10,
+    "pause_ms": 1000,
+    "feed_enabled_default": true,
+    "js_enabled_main_page_default": true,
+    "js_enabled_articles_default": false,
+    "timezone_default": "UTC",
+    "github_username": "EKnipe",
+    "github_repo_name": "Fetch-RSS"
+}
