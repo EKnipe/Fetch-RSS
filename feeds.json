@@ -57,8 +57,8 @@
     "id": "OxMaths",
     "base_url": "https://www.maths.ox.ac.uk",
     "page_url_suffix": "/news",
-    "title": "Oxford Mathematics Institute | News",
-    "description": "News from the Mathematics Institute, University of Oxford",
+    "title": "Oxford Mathematical Institute | News",
+    "description": "News from the Mathematical Institute, University of Oxford",
     "xml_filename": "oxmaths_feed",
     "css_selectors": {
       "item": "article.article",
