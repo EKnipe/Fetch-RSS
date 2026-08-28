@@ -12,24 +12,35 @@ from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 from playwright.sync_api import sync_playwright
+from requests import get as get_request
 
 ### GLOBAL CONSTANTS
 
 GLOBAL_MAX_ITEMS: int = 20
+GLOBAL_MAX_PAGES: int = 22
+TIMEOUT_S: int = 10
+PAUSE_MS: int = 1_000
 
-DEFAULT_TIMEZONE: ZoneInfo = ZoneInfo("Europe/London")
+FEEDS_ENABLED_DEFAULT: bool = True
 
-JSON_PATH: Path = Path("feeds.json")
+DEFAULT_TIMEZONE: ZoneInfo = ZoneInfo("UTC")
+
+GITHUB_USERNAME: str = "EKnipe"
+GITHUB_REPO_NAME: str = "Fetch-RSS"
+
+## JSON
+FEEDS_JSON_PATH: Path = Path("feeds.json")
 
 ## Feed XML output
 OUTPUT_DIR: Path = Path("_site")
 XML_EXT: str = ".xml"
 
-GITHUB_USERNAME: str = "EKnipe"
-GITHUB_REPO_NAME: str = "Fetch-RSS"
+TIMEOUT_MS: int = TIMEOUT_S * 1000
 
 GITHUB_PAGES_URL: str = "https://" + GITHUB_USERNAME + ".github.io/" + GITHUB_REPO_NAME
 GITHUB_REPO_URL: str = "https://github.com/" + GITHUB_USERNAME + "/" + GITHUB_REPO_NAME
+
+USER_AGENT: str = "Mozilla/5.0 (compatible; "+ GITHUB_REPO_NAME + "/1.0; +" + GITHUB_REPO_URL + "/)"
 
 
 ### CLASS DEFINITIONS
@@ -57,9 +68,13 @@ class Feed:
     description: str
     xml_filename: str
     css_selectors: CSS_Selectors
+    page_num_selector: str | None = None
+    main_page_requires_js: bool = True ### conservative default
+    articles_require_js: bool = False ### aggressive default to discover what breaks
     max_items: int = GLOBAL_MAX_ITEMS
+    max_pages: int = GLOBAL_MAX_PAGES
     timezone: ZoneInfo = DEFAULT_TIMEZONE
-    enabled: bool = True
+    enabled: bool = FEEDS_ENABLED_DEFAULT
 
     @classmethod
     def from_dict(cls, data: dict) -> "Feed":
@@ -77,7 +92,7 @@ class Item:
     image_url: str | None
 
 def parse_feeds() -> list[Feed]:
-    with open(JSON_PATH, encoding="utf-8") as f:
+    with open(FEEDS_JSON_PATH, encoding="utf-8") as f:
         return [Feed.from_dict(x) for x in load_json(f)]
 
 
@@ -85,30 +100,44 @@ def parse_feeds() -> list[Feed]:
 
 ## HTTP
 
-def fetch_page(page, feed: Feed):
+def fetch_page_playwright(page, css_selectors: CSS_Selectors, url: str):
     page.goto(
-        feed.base_url + feed.page_url_suffix,
+        url,
         wait_until = "domcontentloaded",
-        timeout = 60_000
+        timeout = TIMEOUT_MS
     )
 
     page.wait_for_selector(
-        feed.css_selectors.title,
+        css_selectors.title,
         state = "visible",
-        timeout = 30_000,
+        timeout = TIMEOUT_MS,
     )
 
     page.wait_for_selector(
-        feed.css_selectors.url,
+        css_selectors.url,
         state = "attached",
-        timeout = 30_000,
+        timeout = TIMEOUT_MS,
     )
 
-    page.wait_for_timeout(1_000)
+    page.wait_for_timeout(PAUSE_MS)
 
     page_html = page.content()
 
     return page_html
+
+def fetch_page_requests(url):
+    response = get_request(
+        url,
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml"
+        },
+        timeout = TIMEOUT_S
+    )
+
+    response.raise_for_status()
+
+    return response.text
 
 ## Helper Functions for Scraper
 
@@ -218,6 +247,16 @@ def extract_description(element) -> str:
 
     return "TODO" ### TODO
 
+def unique_items(items: list[Item]) -> list[Item]:
+    unique: list[Item] = []
+    seen_urls: set[str] = set()
+    for item in items:
+        if item.url not in seen_urls:
+            seen_urls.add(item.url)
+            unique.append(item)
+    
+    return unique
+
 ## Scraper
 
 def scrape_articles(page_html, feed: Feed) -> list[Item]:
@@ -266,37 +305,22 @@ def scrape_articles(page_html, feed: Feed) -> list[Item]:
     if not items:
         raise RuntimeError("Failed to extract items")
 
-    # Sort items by date (newest first)
-    items.sort(
-        key = lambda item: item.date_published,
-        reverse = True
-    )
-
-    # Remove duplicate URLs
-    unique_items: list[Item] = []
-    seen_urls: set[str] = set()
-
-    for item in items:
-        if item.url not in seen_urls:
-            seen_urls.add(item.url)
-            unique_items.append(item)
-
-    return unique_items[:min(GLOBAL_MAX_ITEMS, feed.max_items)]
+    return items
 
 ## Article body fetcher
 
-def fetch_body(page, url, content_selector: str) -> str:
+def fetch_body_playwright(page, url, content_selector: str) -> str:
     page.goto(
         url,
         wait_until = "domcontentloaded",
-        timeout = 60_000
+        timeout = TIMEOUT_MS
     )
 
     locator = page.locator(content_selector).first
 
     locator.wait_for(
         state = "visible",
-        timeout = 30_000
+        timeout = TIMEOUT_MS
     )
 
     article_html: str = locator.inner_html()
@@ -311,6 +335,9 @@ def fetch_body(page, url, content_selector: str) -> str:
             paragraph.decompose()
 
     return str(soup).strip()
+
+def fetch_body_requests(page, url, content_selector: str) -> str:
+    return fetch_body_playwright(page, url, content_selector) ### TEMP / TODO
 
 ## Helper Functions for RSS
 
@@ -384,56 +411,102 @@ def main():
         )
 
         page = browser.new_page(
-            user_agent = f"Mozilla/5.0 (compatible; {GITHUB_REPO_NAME}/1.0; +{GITHUB_REPO_URL}/)"
+            user_agent = USER_AGENT
         )
 
         feed_count: int = 0
         for feed in feeds:
-            if not feed.enabled:
-                print(f"Skipping feed: {feed.id}")
-                continue
+            try:
+                if not feed.enabled:
+                    print(f"Skipping feed: {feed.id}")
+                    continue
 
-            print(f"Processing feed: {feed.id}")
-    
-            print(f"Fetching {feed.base_url + feed.page_url_suffix}...")
+                print(f"Processing feed: {feed.id}")
 
-            page_html = fetch_page(page, feed)
+                feed_visit_count: int = 0
 
-            print("Extracting news items...")
+                feed_page_url: str = feed.base_url + feed.page_url_suffix
 
-            items: list[Item] = scrape_articles(page_html, feed)
+                items: list[Item] = []
+                page_number: int = 1
+                while len(items) < feed.max_items and feed_visit_count < min(feed.max_pages, GLOBAL_MAX_PAGES):
+                    if page_number == 1:
+                        working_url: str = feed_page_url
+                    else:
+                        if not feed.page_num_selector:
+                            break
+                        working_url: str = feed_page_url + feed.page_num_selector + str(page_number)
+        
+                    print(f"Fetching {working_url}...")
 
-            for item in items:
-                article_body: str | None = None
-                if feed.css_selectors.page_content:
-                    try:
-                        article_body = fetch_body(page, item.url, feed.css_selectors.page_content)
-                    except Exception as e:
-                        print(f"Failed to fetch article contents from {item.url}: {e}")
+                    if feed.main_page_requires_js:
+                        page_html = fetch_page_playwright(page, feed.css_selectors, working_url)
+                    else:
+                        page_html = fetch_page_requests(working_url)
 
-                if article_body:
-                    if item.description and (len(item.description) > len(article_body)):
-                        print(f"WARNING: Overwrote item description with small content for item {item.url}")
+                    print("Extracting news items...")
 
-                    item.description = make_description(item.image_url) + article_body
-                else:
-                    item.description = make_description(item.image_url, item.description)
+                    initial_item_count: int = len(items)
 
-            print(f"Found {len(items)} items. Generating RSS...")
+                    items += scrape_articles(page_html, feed)
+                    feed_visit_count += 1
+                
+                    items = unique_items(items)
 
-            rss: str = generate_RSS(items, feed)
+                    if len(items) <= initial_item_count:
+                        break
 
-            OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+                    page_number += 1
 
-            output_file: Path = OUTPUT_DIR / (feed.xml_filename + XML_EXT)
+                # Sort items by date (newest first)
+                items.sort(
+                    key = lambda item: item.date_published,
+                    reverse = True
+                )
+                
+                items = items[:min(GLOBAL_MAX_ITEMS, feed.max_items)]
 
-            output_file.write_text(
-                rss,
-                encoding="utf-8",
-            )
+                for item in items:
+                    article_body: str | None = None
 
-            print(f"Wrote {output_file}")
-            feed_count += 1
+                    if feed.css_selectors.page_content and feed_visit_count < min(feed.max_pages, GLOBAL_MAX_PAGES):
+                        feed_visit_count += 1
+
+                        try:
+                            if feed.articles_require_js:
+                                article_body = fetch_body_playwright(page, item.url, feed.css_selectors.page_content)
+                            else:
+                                article_body = fetch_body_requests(page, item.url, feed.css_selectors.page_content) ### pass page for temp passthrough function
+                        except Exception as e_item:
+                            print(f"Failed to fetch article contents from {item.url}: {e_item}")
+
+                    if article_body:
+                        if item.description and (len(item.description) > len(article_body)):
+                            print(f"WARNING: Overwrote item description with small content for item {item.url}")
+
+                        item.description = make_description(item.image_url) + article_body
+                    else:
+                        item.description = make_description(item.image_url, item.description)
+
+                print(f"Found {len(items)} items. Generating RSS...")
+
+                rss: str = generate_RSS(items, feed)
+
+                print("Writing XML...")
+
+                OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+                output_file: Path = OUTPUT_DIR / (feed.xml_filename + XML_EXT)
+
+                output_file.write_text(
+                    rss,
+                    encoding="utf-8",
+                )
+
+                print(f"Wrote {output_file}")
+                feed_count += 1
+            except Exception as e_feed:
+                print(f"Exception processing feed: {e_feed}")
 
     print(f"{feed_count} {"feed" if feed_count == 1 else "feeds"} fetched")
 

@@ -6,6 +6,8 @@
     "title": "Oxford Economics Department | News",
     "description": "News from the Department of Economics, University of Oxford",
     "xml_filename": "oxecon_feed",
+    "main_page_requires_js": true,
+    "page_num_selector": "?page-3990981=",
     "css_selectors": {
       "item": "article[class*='listing-item']",
       "title": "div[class*='listing-title'] h3",
@@ -15,8 +17,7 @@
       "description": null,
       "page_content": "div.content div.field-name-field-content div.field-item"
     },
-    "timezone": "Europe/London",
-    "enabled": false
+    "timezone": "Europe/London"
   },
   {
     "id": "OxHist",
@@ -25,6 +26,8 @@
     "title": "Oxford History Faculty | News",
     "description": "News from the Faculty of History, University of Oxford",
     "xml_filename": "oxhist_feed",
+    "main_page_requires_js": false,
+    "page_num_selector": null,
     "css_selectors": {
       "item": ".oxfcms-listing-item",
       "title": "h3",
@@ -34,8 +37,7 @@
       "description": "div[class*='card-text']",
       "page_content": "div.oxfcms-text div.clearfix"
     },
-    "timezone": "Europe/London",
-    "enabled": false
+    "timezone": "Europe/London"
   },
   {
     "id": "OxClassics",
@@ -44,6 +46,8 @@
     "title": "Oxford Classics Faculty | News",
     "description": "News from the Faculty of Classics, University of Oxford",
     "xml_filename": "oxclassics_feed",
+    "main_page_requires_js": true,
+    "page_num_selector": "?page-463491=",
     "css_selectors": {
       "item": "article[class*='listing-item']",
       "title": ".listing-title h3",
@@ -53,8 +57,7 @@
       "description": null,
       "page_content": "div.content div.field-name-field-content div.field-items div.field-item"
     },
-    "timezone": "Europe/London",
-    "enabled": false
+    "timezone": "Europe/London"
   },
   {
     "id": "OxMaths",
@@ -63,6 +66,8 @@
     "title": "Oxford Mathematical Institute | News",
     "description": "News from the Mathematical Institute, University of Oxford",
     "xml_filename": "oxmaths_feed",
+    "main_page_requires_js": false,
+    "page_num_selector": "?page=",
     "css_selectors": {
       "item": "article.article",
       "title": "h2",
@@ -72,8 +77,7 @@
       "description": "div[class*='field--type-text-with-summary']",
       "page_content": null
     },
-    "timezone": "Europe/London",
-    "enabled": true
+    "timezone": "Europe/London"
   },
   {
     "id": "OxBio",
@@ -82,16 +86,16 @@
     "title": "Oxford Biology Department | News",
     "description": "News from the Department of Biology, University of Oxford",
     "xml_filename": "oxbio_feed",
+    "main_page_requires_js": true,
+    "page_num_selector": "?page-3311136=",
     "css_selectors": {
       "item": "article[class*='listing-item']",
       "title": "div[class*='listing-title'] h3",
       "url": "a[class*='listing-item-link']",
       "date": "div[class*='metadata-data']",
       "image": "div[class*='image'] img",
-      "description": null,
-      "page_content": null
+      "description": null
     },
-    "timezone": "Europe/London",
-    "enabled": false
+    "timezone": "Europe/London"
   }
 ]
