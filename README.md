@@ -8,6 +8,7 @@ Supports:
 - [www.history.ox.ac.uk/news](https://www.history.ox.ac.uk/news), the news page of the Faculty of History, University of Oxford
 - [www.classics.ox.ac.uk/news](https://www.classics.ox.ac.uk/news), the news page of the Faculty of Classics, University of Oxford\*
 - [www.maths.ox.ac.uk/news](https://www.maths.ox.ac.uk/news), the news page of the Mathematical Institute, University of Oxford\*
+- [www.biology.ox.ac.uk/news](https://www.biology.ox.ac.uk/news), the news page of the Department of Biology, University of Oxford\*
 
 \*Partial functionality
 
@@ -21,6 +22,7 @@ Add the corresponding XML link(s) to your RSS feed reader:
 | Faculty of History, University of Oxford | [www.history.ox.ac.uk/news](https://www.history.ox.ac.uk/news) | [eknipe.github.io/Fetch-RSS/oxhist_feed.xml](https://eknipe.github.io/Fetch-RSS/oxhist_feed.xml) |
 | Faculty of Classics, University of Oxford | [www.classics.ox.ac.uk/news](https://www.classics.ox.ac.uk/news) | [eknipe.github.io/Fetch-RSS/oxclassics_feed.xml](https://eknipe.github.io/Fetch-RSS/oxclassics_feed.xml) |
 | Mathematical Institute, University of Oxford | [www.maths.ox.ac.uk/news](https://www.maths.ox.ac.uk/news) | [eknipe.github.io/Fetch-RSS/oxmaths_feed.xml](https://eknipe.github.io/Fetch-RSS/oxmaths_feed.xml) |
+| Department of Biology, University of Oxford | [www.biology.ox.ac.uk/news](https://www.biology.ox.ac.uk/news) | [eknipe.github.io/Fetch-RSS/oxbio_feed.xml](https://eknipe.github.io/Fetch-RSS/oxbio_feed.xml) |
 
 Alternatively, clone this repository and run the script manually to create local XML files.
 

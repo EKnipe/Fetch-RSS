@@ -49,7 +49,7 @@
       "date": ".metadata-data",
       "image": ".image img",
       "description": null,
-      "page_content": "div.content div.field-name-field-content div.field-item"
+      "page_content": "div.content div.field-name-field-content div.field-items div.field-item"
     },
     "timezone": "Europe/London"
   },
@@ -85,7 +85,7 @@
       "date": "div[class*='metadata-data']",
       "image": "div[class*='image'] img",
       "description": null,
-      "page_content": "div.content div.field-name-field-content div.field-item"
+      "page_content": null
     },
     "timezone": "Europe/London"
   }
