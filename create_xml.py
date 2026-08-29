@@ -131,13 +131,13 @@ def fetch_page_playwright(page, css_selectors: CSS_Selectors, url: str):
     page.wait_for_selector(
         css_selectors.title,
         state = "visible",
-        timeout = TIMEOUT_MS,
+        timeout = TIMEOUT_MS
     )
 
     page.wait_for_selector(
         css_selectors.url,
         state = "attached",
-        timeout = TIMEOUT_MS,
+        timeout = TIMEOUT_MS
     )
 
     page.wait_for_timeout(PAUSE_MS)
@@ -169,7 +169,7 @@ def get_text(element) -> str:
     return re.sub(
         r"\s+",
         " ",
-        element.get_text(" ", strip=True),
+        element.get_text(" ", strip=True)
     )
 
 def absolute_url(url, base_url: str):
