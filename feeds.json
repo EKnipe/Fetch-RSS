@@ -127,19 +127,24 @@
     "id": "OxUni",
     "base_url": "www.ox.ac.uk",
     "https": true,
-    "page_url_suffix": "/news-listing",
+    "page_url_suffix": "/news",
     "title": "University of Oxford | News",
     "readme_title": "University of Oxford",
     "description": "News from the University of Oxford",
     "readme_description": "the news page of the University of Oxford",
     "xml_filename": "oxuni_feed",
-    "page_num_selector": "?page=",
+    "max_items": 4,
+    "main_page_requires_js": true,
     "css_selectors": {
-      "item": "",
-      "title": "",
-      "url": ""
+      "item": "div[data-js-listing-container*='\"carousel_title\":\"Latest news and research\"'] article[data-component-id=\"numiko:teaser\"]",
+      "title": "div[data-js-listing-container*='\"carousel_title\":\"Latest news and research\"'] article[data-component-id=\"numiko:teaser\"] h3 a span",
+      "url": "div[data-js-listing-container*='\"carousel_title\":\"Latest news and research\"'] article[data-component-id=\"numiko:teaser\"] h3 a",
+      "date": "div[data-js-listing-container*='\"carousel_title\":\"Latest news and research\"'] article[data-component-id=\"numiko:teaser\"] time[datetime]",
+      "image": "div[data-js-listing-container*='\"carousel_title\":\"Latest news and research\"'] article[data-component-id=\"numiko:teaser\"] img",
+      "description": null
     },
     "timezone": "Europe/London",
-    "supported": false
+    "supported": true,
+    "perfect": false
   }
 ]

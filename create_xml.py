@@ -459,12 +459,12 @@ def main():
                         if not feed.page_num_selector:
                             break
                         working_url: str = feed_page_url + feed.page_num_selector + str(page_number)
-        
-                    print(f"Fetching {working_url}...")
 
                     if feed.main_page_requires_js:
+                        print(f"Fetching {working_url} using Playwright...")
                         page_html = fetch_page_playwright(page, feed.css_selectors, working_url)
                     else:
+                        print(f"Fetching {working_url} with HTTP request...")
                         page_html = fetch_page_requests(working_url)
 
                     print("Extracting news items...")
