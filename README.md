@@ -35,3 +35,4 @@ Alternatively, clone this repository and run the script manually to create local
 - [Playwright](https://github.com/microsoft/playwright)
 - [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/)
 - [dateutil](https://github.com/dateutil/dateutil)
+- [requests](https://github.com/psf/requests)
