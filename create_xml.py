@@ -52,7 +52,8 @@ GITHUB_REPO_NAME: str = str(CONFIG["github_repo_name"])
 
 TIMEOUT_MS: int = TIMEOUT_S * 1000
 
-GITHUB_PAGES_URL: str = "https://" + GITHUB_USERNAME + ".github.io/" + GITHUB_REPO_NAME
+GITHUB_PAGES_URL_NO_HTTPS: str = GITHUB_USERNAME.lower() + ".github.io/" + GITHUB_REPO_NAME
+GITHUB_PAGES_URL: str = "https://" + GITHUB_PAGES_URL_NO_HTTPS
 GITHUB_REPO_URL: str = "https://github.com/" + GITHUB_USERNAME + "/" + GITHUB_REPO_NAME
 
 USER_AGENT: str = "Mozilla/5.0 (compatible; "+ GITHUB_REPO_NAME + "/1.0; +" + GITHUB_REPO_URL + "/)"
@@ -86,10 +87,15 @@ class Feed:
     page_num_selector: str | None = None
     main_page_requires_js: bool = JS_ENABLED_MAIN_PAGE_DEFAULT
     articles_require_js: bool = JS_ENABLED_ARTICLES_DEFAULT
+    https: bool = True
     max_items: int = GLOBAL_MAX_ITEMS
     max_pages: int = GLOBAL_MAX_PAGES
     timezone: ZoneInfo = DEFAULT_TIMEZONE
+    readme_description: str | None = None
+    readme_title: str | None = None
     enabled: bool = FEED_ENABLED_DEFAULT
+    supported: bool = True
+    perfect: bool = True
 
     @classmethod
     def from_dict(cls, data: dict) -> "Feed":
@@ -277,8 +283,10 @@ def unique_items(items: list[Item]) -> list[Item]:
 def scrape_articles(page_html, feed: Feed) -> list[Item]:
     articles = BeautifulSoup(page_html, "html.parser").select(feed.css_selectors.item)
 
+    root_url: str = ("https://" if feed.https else "http://") + feed.base_url
+
     if not articles:
-        raise RuntimeError("No articles found at " + feed.base_url + feed.page_url_suffix)
+        raise RuntimeError("No articles found at " + root_url + feed.page_url_suffix)
     
     items: list[Item] = []
 
@@ -291,7 +299,7 @@ def scrape_articles(page_html, feed: Feed) -> list[Item]:
         if not url_element:
             continue ## Require URL
         
-        item_url: str = absolute_url(url_element.get("href", ""), feed.base_url)
+        item_url: str = absolute_url(url_element.get("href", ""), root_url)
         if not item_url:
             continue ## Require href
 
@@ -303,7 +311,7 @@ def scrape_articles(page_html, feed: Feed) -> list[Item]:
 
         image_url: str | None = None
         if feed.css_selectors.image:
-            image_url = get_image_url(article.select_one(feed.css_selectors.image), feed.base_url)
+            image_url = get_image_url(article.select_one(feed.css_selectors.image), root_url)
 
         item_description: str | None = None
         if feed.css_selectors.description:
@@ -396,7 +404,7 @@ def generate_RSS(items: list[Item], feed: Feed) -> str:
      xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
     <title>{cdata(feed.title)}</title>
-    <link>{xml_escape(feed.base_url + feed.page_url_suffix)}</link>
+    <link>{xml_escape(("https://" if feed.https else "http://") + feed.base_url + feed.page_url_suffix)}</link>
     <description>{cdata(feed.description)}</description>
     <language>en-gb</language>
     <lastBuildDate>{xml_escape(last_build_date)}</lastBuildDate>
@@ -432,7 +440,7 @@ def main():
         feed_count: int = 0
         for feed in FEEDS:
             try:
-                if not feed.enabled:
+                if not (feed.enabled and feed.supported):
                     print(f"Skipping feed: {feed.id}")
                     continue
 
@@ -440,7 +448,7 @@ def main():
 
                 feed_visit_count: int = 0
 
-                feed_page_url: str = feed.base_url + feed.page_url_suffix
+                feed_page_url: str = ("https://" if feed.https else "http://") + feed.base_url + feed.page_url_suffix
 
                 items: list[Item] = []
                 page_number: int = 1
@@ -515,7 +523,7 @@ def main():
 
                 output_file.write_text(
                     rss,
-                    encoding="utf-8",
+                    encoding = "utf-8"
                 )
 
                 print(f"Wrote {output_file}")
