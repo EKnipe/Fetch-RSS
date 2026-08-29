@@ -359,8 +359,30 @@ def fetch_body_playwright(page, url, content_selector: str) -> str:
 
     return str(soup).strip()
 
-def fetch_body_requests(page, url, content_selector: str) -> str:
-    return fetch_body_playwright(page, url, content_selector) ### TEMP / TODO
+def fetch_body_requests(url, content_selector: str) -> str: ### TODO
+    response = get_request(
+        url,
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml"
+        },
+        timeout = TIMEOUT_S
+    )
+
+    response.raise_for_status()
+
+    soup: BeautifulSoup = BeautifulSoup(response.text, "html.parser")
+
+    soup = BeautifulSoup(soup.select(content_selector)[0].get_text())
+    
+    for unwanted in soup.select("script, style, noscript"):
+        unwanted.decompose()
+
+    for paragraph in soup.find_all("p"):
+        if not paragraph.get_text(" ", strip=True):
+            paragraph.decompose()
+
+    return str(soup).strip()
 
 ## Helper Functions for RSS
 
@@ -499,7 +521,7 @@ def main():
                             if feed.articles_require_js:
                                 article_body = fetch_body_playwright(page, item.url, feed.css_selectors.page_content)
                             else:
-                                article_body = fetch_body_requests(page, item.url, feed.css_selectors.page_content) ### pass page for temp passthrough function
+                                article_body = fetch_body_requests(item.url, feed.css_selectors.page_content)
                         except Exception as e_item:
                             print(f"Failed to fetch article contents from {item.url}: {e_item}")
 

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title><![CDATA[University of Oxford | News]]></title>
+    <link>https://www.ox.ac.uk/news</link>
+    <description><![CDATA[News from the University of Oxford]]></description>
+    <language>en-gb</language>
+    <lastBuildDate>Sat, 29 Aug 2026 17:27:30 +0100</lastBuildDate>
+    <generator>Fetch-RSS</generator>
+    <atom:link
+      href="https://eknipe.github.io/Fetch-RSS/oxuni_feed.xml"
+      rel="self"
+      type="application/rss+xml" />
+
+    <item>
+      <title><![CDATA[Four Oxford academics honoured in the 2026 Royal Society Awards]]></title>
+      <link>https://www.ox.ac.uk/news/2026-08-26-four-oxford-academics-honoured-in-the-2026-royal-society-awards</link>
+      <guid isPermaLink="true">https://www.ox.ac.uk/news/2026-08-26-four-oxford-academics-honoured-in-the-2026-royal-society-awards</guid>
+      <pubDate>Thu, 27 Aug 2026 00:00:00 +0100</pubDate>
+      <description><![CDATA[<p><img src="https://www.ox.ac.uk/s3/files/styles/3_2_media_xl_2000x1333/s3/2026-08/awards-1.jpg.avif?itok=33E63Z4B" alt="" /></p>]]></description>
+    </item>
+    <item>
+      <title><![CDATA[New shingles vaccine linked to lower risk of coronary heart disease, stroke and heart failure - major study indicates]]></title>
+      <link>https://www.ox.ac.uk/news/2026-08-27-new-shingles-vaccine-linked-to-lower-risk-of-coronary-heart-disease-stroke-and</link>
+      <guid isPermaLink="true">https://www.ox.ac.uk/news/2026-08-27-new-shingles-vaccine-linked-to-lower-risk-of-coronary-heart-disease-stroke-and</guid>
+      <pubDate>Thu, 27 Aug 2026 00:00:00 +0100</pubDate>
+      <description><![CDATA[<p><img src="https://www.ox.ac.uk/s3/files/styles/3_2_media_xl_2000x1333/s3/2026-08/GettyImages-1349795887.jpg.avif?itok=lfslE0b9" alt="" /></p>]]></description>
+    </item>
+    <item>
+      <title><![CDATA[Satellite images reveal that tides can vary by almost a metre across a single bay]]></title>
+      <link>https://www.ox.ac.uk/news/2026-08-24-satellite-images-reveal-that-tides-can-vary-by-almost-a-metre-across-a-single-bay</link>
+      <guid isPermaLink="true">https://www.ox.ac.uk/news/2026-08-24-satellite-images-reveal-that-tides-can-vary-by-almost-a-metre-across-a-single-bay</guid>
+      <pubDate>Tue, 25 Aug 2026 00:00:00 +0100</pubDate>
+      <description><![CDATA[<p><img src="https://assets-oxweb.admin.ox.ac.uk/styles/3_2_media_xl_2000x1333/s3/2026-08/Tides.jpg.avif?itok=71xC9jkH" alt="" /></p>]]></description>
+    </item>
+    <item>
+      <title><![CDATA[Professor Philip Maini: What can mathematics reveal about biology?]]></title>
+      <link>https://www.ox.ac.uk/news/pulse/nature-climate-universe/philip-maini</link>
+      <guid isPermaLink="true">https://www.ox.ac.uk/news/pulse/nature-climate-universe/philip-maini</guid>
+      <pubDate>Tue, 25 Aug 2026 00:00:00 +0100</pubDate>
+      <description><![CDATA[<p><img src="https://assets-oxweb.admin.ox.ac.uk/styles/3_2_media_xl_2000x1333/s3/2026-08/PhilipMaini-04.jpg.avif?itok=5s6DhMi1" alt="" /></p>]]></description>
+    </item>
+  </channel>
+</rss>

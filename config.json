@@ -5,7 +5,7 @@
     "pause_ms": 1000,
     "feed_enabled_default": true,
     "js_enabled_main_page_default": true,
-    "js_enabled_articles_default": false,
+    "js_enabled_articles_default": true,
     "timezone_default": "UTC",
     "github_username": "EKnipe",
     "github_repo_name": "Fetch-RSS"
