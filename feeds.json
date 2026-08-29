@@ -84,7 +84,7 @@
     "description": "News from the Mathematical Institute, University of Oxford",
     "readme_description": "the news page of the Mathematical Institute, University of Oxford",
     "xml_filename": "oxmaths_feed",
-    "main_page_requires_js": false,
+    "main_page_requires_js": true,
     "page_num_selector": "?page=",
     "css_selectors": {
       "item": "article.article",
