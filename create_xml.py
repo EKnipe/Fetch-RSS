@@ -266,7 +266,7 @@ def extract_description(element) -> str:
     if element is None:
         return ""
 
-    return "TODO" ### TODO
+    return "" ### TODO
 
 def unique_items(items: list[Item]) -> list[Item]:
     unique: list[Item] = []
